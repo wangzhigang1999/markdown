@@ -5,10 +5,12 @@
 
 因此我决定把我所有的文章整理一下,也方便自己日后复习. 坚持每日更新一点点~
 
-同时为了在移动端上访问,我决定采用 `docsify`  进行部署.
+同时为了在移动端上访问,我决定采用 `docsify`  进行部署.所有文件都部署在阿里云服务器上. 
 # 关于我
 > [主页](https://www.bupt.site/)
 
 > [GitHub](https://github.com/wangzhigang1999)
 
-> [我的简历](https://www.baidu.com)
+
+> [我的简历](https://www.bupt.site)
+
