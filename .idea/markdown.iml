@@ -5,5 +5,10 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="search" level="application" />
+    <orderEntry type="library" name="zoom-image" level="application" />
+    <orderEntry type="library" name="countable" level="application" />
+    <orderEntry type="library" name="prism-java" level="application" />
+    <orderEntry type="library" name="docsify" level="application" />
   </component>
 </module>
