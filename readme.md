@@ -31,13 +31,13 @@
 
 # 关于我
 
-面向Google编程的学生一枚
+擅长面向Google编程的学生一枚
 
 > [主页](https://www.bupt.site/)
 
 > [GitHub](https://github.com/wangzhigang1999)
 
-> [我的简历](https://www.bupt.site)
+> [我的简历](docs/resume/resume.md)
 
 # Let's Start !
 
