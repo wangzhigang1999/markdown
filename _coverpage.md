@@ -1,8 +1,6 @@
-<h1 align="center">wangz</h1>
-
 [我的主页](https://www.bupt.site/)
-[GitHub](https://github.com/Snailclimb/docsify-demo)
-[开始阅读](#docsify-demo)
+[GitHub](https://github.com/wangzhigang1999)
+[开始阅读](readme.md)
 
 
 
