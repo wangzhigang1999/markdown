@@ -1,3 +1,3 @@
-- [集合](docs/Java/集合框架/Collections.md)
+- [基础](docs/Java/BaseConcept/Base.md)
+- [集合](docs/Java/collections/Collections.md)
 - [JVM虚拟机](docs/Java/JVM/JVM.md)
-- [多线程](docs/Java/多线程/多线程.md)

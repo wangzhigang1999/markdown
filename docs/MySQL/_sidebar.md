@@ -1,1 +1,1 @@
-- [ MySQL](docs/MySQL/MySQL.md)
+- [ MySQL 基础](docs/MySQL/MySQL.md)
