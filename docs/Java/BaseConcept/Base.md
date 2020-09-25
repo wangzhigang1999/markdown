@@ -2,12 +2,55 @@
 
 ## 基本类型
 
+​	Java 有8大基本类型: `char byte short int long float double boolean`,每一种基本类型都有对应的包装类型. Java会对基本类型和其对应的包装类型进行``自动拆箱和装箱``, 注意,这个过程可能会发生空指针异常.
+
 ## String
+
+​	Java 的String是用 `byte` 数组实现的,之前有版本使用 `char` 数组实现. 为什么要改变这一实现? 因为 char 占用两个字节, 而 byte 只占用一个字节. 
+
+​	一个String对象一旦被创建,则不可以再进行变化. 因为真正的字节数组被声明为 final ,因此 String 是线程安全的.
+
+```Java
+private final byte[] value;
+```
 
 ## StringBuffer
 
+​	StringBuffer 继承了 `AbstractStringBuilder` ,`AbstractStringBuilder` 中定义了一系列的字符串操作方法,在 JDK 15 中,仍然采用的是 byte 数组. 初始大小为 `16`.
+
+​	值得一提的是, StringBuffer 的方法都有 `synchronized`修饰,因此,StringBuffer 是线程安全的
+
+```Java
+ public final class StringBuffer
+    extends AbstractStringBuilder
+    implements java.io.Serializable, Comparable<StringBuffer>, CharSequence
+{}
+```
+
 ## StringBuilder
 
-## 空参构造方法
+​	与StringBuffer类似,但是不具有线程安全性.
 
 ## 接口与抽象类
+
+​	接口是对行为的抽象,而抽象类是对属性的抽象.
+
+​	接口的限制比抽象类多
+
+## ==与equals
+
+​	对于基本类型, == 会判断两个值是否相同, 对于引用类型, == 会判断指向的地址是否相同.
+
+​	equals 是一个方法,根据需要进行判断
+
+## 为什么重写 equals 需要重写 hashcode
+
+​	hashcode的使用大都集中在 hashmap 相关的数据结构中. 以HashMap的插入过程为例, 首先会来一个与操作`(n - 1) & hash])`, 两个物理地址不同的对象即使逻辑上是相同的, 他们 hash 出来的地址也有可能不同, 这样就会导致存入了重复的值. 因此在重写 equals 时必须重写 hashcode . 
+
+## 深拷贝和浅拷贝
+
+浅拷贝对于基本类型会复制一份值,而引用类型只会复制一个引用,这样在引用的对象变化之后就会出现错误.
+
+深拷贝则是创建新的对象,原有的对象不再影响新的引用.
+
+可以用 `序列化` 的方式实现深拷贝, 参考设计模式中的 `克隆模式` 或者`原型模式`
