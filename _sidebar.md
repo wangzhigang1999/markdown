@@ -4,4 +4,4 @@
 
 - [MySQL](docs/MySQL/)
 
-- [leetcode](docs/刷题/)
+- [leetcode](docs/leetcode/)
