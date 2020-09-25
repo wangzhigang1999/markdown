@@ -399,5 +399,21 @@ HashSet 在检查重复的时候会先检查hashcode,如果两个元素的key的
 
 ## ConcurrentHashMap
 
+![ConcurrentHashMap](Collections.assets/ConcurrentHashMap.svg)
+
+### 创建
+
+```Java
+/**
+ * Creates a new, empty map with the default initial table size (16).
+ */
+public ConcurrentHashMap() {
+}
+```
+
+### 并发级别
+
+
+
 ## CopyOnWriteArrayList
 
