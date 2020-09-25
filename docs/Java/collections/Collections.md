@@ -73,6 +73,7 @@ public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
 ```
 
 ```Java
+// 处理大的长度的函数
 private static int hugeLength(int oldLength, int minGrowth) {
     int minLength = oldLength + minGrowth;
     if (minLength < 0) { // overflow
@@ -87,7 +88,7 @@ private static int hugeLength(int oldLength, int minGrowth) {
 
 ### RandomAccess
 
-这是一个简单的接口,什么都没有定义. 只是表明 ArrayList 支持随机访问.
+这是一个简单的接口,什么都没有定义. 只是表明 ArrayList 支持随机访问. LinkedList 就没有实现这个接口.
 
 ```Java
 public interface RandomAccess {
