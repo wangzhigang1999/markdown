@@ -144,6 +144,259 @@ void linkLast(E e) {
 
 ## HashMap
 
+![HashMap](Collections.assets/HashMap.svg)
+
+`最大capacity`= 1<<30
+
+### Node节点
+
+```Java
+static class Node<K,V> implements Map.Entry<K,V> {
+    final int hash;
+    final K key;
+    V value;
+    Node<K,V> next;
+
+	// .........
+    
+    public final int hashCode() {
+        return Objects.hashCode(key) ^ Objects.hashCode(value);
+    }
+
+    public final boolean equals(Object o) {
+        if (o == this)
+            return true;
+        if (o instanceof Map.Entry) {
+            Map.Entry<?,?> e = (Map.Entry<?,?>)o;
+            if (Objects.equals(key, e.getKey()) &&
+                Objects.equals(value, e.getValue()))
+                return true;
+        }
+        return false;
+    }
+}
+```
+
+### 创建
+
+在创建HashMap的时候,默认的负载因子是 16 . 负载因子的含义是当  占用的空间/总空间>=负载因子时,进行扩容操作
+
+```Java
+/**
+ * Constructs an empty {@code HashMap} with the default initial capacity
+ * (16) and the default load factor (0.75).
+ */
+public HashMap() {
+    // 默认的负载因子 0.75 ,默认的容量是 16
+    this.loadFactor = DEFAULT_LOAD_FACTOR; // all other fields defaulted
+}
+```
+
+在创建的时候如果指定了初始的容量大小, Java不会直接按照给定的容量进行初始化,而是进行一个神奇的操作:
+
+```Java
+static final int tableSizeFor(int cap) {
+    int n = -1 >>> Integer.numberOfLeadingZeros(cap - 1);
+    return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+}
+```
+
+将这个函数的返回值作为真正的阈值,简而言之,这个函数的目的就是为了找到``不小于cap的2的幂次的数``
+
+### 添加
+
+添加的时候使用的是下边这个方法,后边两个参数的值为 `false` 和 `true`
+
+```Java
+    final V putVal(int hash, K key, V value, boolean onlyIfAbsent, boolean evict)       
+```
+
+这个方法有一点长:
+
+```Java
+final V putVal(int hash, K key, V value, boolean onlyIfAbsent,  boolean evict) {
+    Node<K,V>[] tab; Node<K,V> p; int n, i;
+    // 首先判断 map 是否未经初始化,如果未初始化, 调用 resize 方法进行初始化
+    if ((tab = table) == null || (n = tab.length) == 0)
+        n = (tab = resize()).length;
+    // hash 一下,判断对应位置是否已经有值存在,不存在,则新建节点然后放进去即可
+    if ((p = tab[i = (n - 1) & hash]) == null)
+        tab[i] = newNode(hash, key, value, null);
+    else {
+        // key 已经存在了
+        Node<K,V> e; K k;
+        // 如果两个键相同,更新一下值即可
+        if (p.hash == hash && ((k = p.key) == key || (key != null && key.equals(k))))
+            e = p;
+        // 如果是一个红黑树节点, 调用红黑树的 put 方法
+        else if (p instanceof TreeNode)
+            e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
+        else {
+            //在链表上查找
+            for (int binCount = 0; ; ++binCount) {
+                // 找到了链表的尾巴,将新的key编程节点插入链表尾部
+                if ((e = p.next) == null) {
+                    p.next = newNode(hash, key, value, null);
+                    // 判断是否要进行树化,当链表的长度 >= 7 进入 treeifyBin 方法,但是并不一定会真的树化
+                    if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                        treeifyBin(tab, hash);
+                    break;
+                }
+                 // 在链表上发现了同样的 key ,直接返回 
+                if (e.hash == hash && ((k = e.key) == key || (key != null && key.equals(k))))
+                    break;
+                p = e;
+            }
+        }
+		//......
+    }
+}
+```
+
+### 扩容
+
+这个方法真是太长了,简要概括: 要么是初始化一个未使用的map,要么就是将大小变为2倍
+
+```Java
+/**
+ * Initializes or doubles table size.  If null, allocates in
+ * accord with initial capacity target held in field threshold.
+ * Otherwise, because we are using power-of-two expansion, the
+ * elements from each bin must either stay at same index, or move
+ * with a power of two offset in the new table.
+ *
+ * @return the table
+ */
+final Node<K,V>[] resize() {
+    Node<K,V>[] oldTab = table;
+    // 获得旧的 capacity
+    int oldCap = (oldTab == null) ? 0 : oldTab.length;
+    // 获得旧的阈值
+    int oldThr = threshold;
+    int newCap, newThr = 0;
+
+    // 旧的  capacity>0 说明map不是初始化
+    if (oldCap > 0) {
+        //旧的capacity已经达到了最大值
+        if (oldCap >= MAXIMUM_CAPACITY) {
+            threshold = Integer.MAX_VALUE;
+            return oldTab;
+        }
+        // 二倍操作
+        else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY && oldCap >= DEFAULT_INITIAL_CAPACITY)
+            newThr = oldThr << 1; // double threshold
+    }
+    // 只有初始化的时候才会进入这个分支,写代码的鬼才~
+    else if (oldThr > 0) // initial capacity was placed in threshold
+        newCap = oldThr;
+    else {               // zero initial threshold signifies using defaults
+        newCap = DEFAULT_INITIAL_CAPACITY;
+        newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+    }
+    
+    // 计算一下新的阈值
+    if (newThr == 0) {
+        float ft = (float)newCap * loadFactor;
+        
+        // 展开了一下三目运算符
+        //newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
+        //          (int)ft : Integer.MAX_VALUE);
+         if (newCap < MAXIMUM_CAPACITY && ft < (float) MAXIMUM_CAPACITY) {
+            newThr = (int) ft;
+        } else {
+            newThr = Integer.MAX_VALUE;
+        }
+    }
+    threshold = newThr;
+    @SuppressWarnings({"rawtypes","unchecked"})
+    // 开始进行值的迁移
+    Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
+    table = newTab;
+    if (oldTab != null) {
+        for (int j = 0; j < oldCap; ++j) {
+            Node<K,V> e;
+            if ((e = oldTab[j]) != null) {
+                oldTab[j] = null;
+                if (e.next == null)
+                    newTab[e.hash & (newCap - 1)] = e;
+                else if (e instanceof TreeNode)
+                    ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
+                else { // preserve order
+                    Node<K,V> loHead = null, loTail = null;
+                    Node<K,V> hiHead = null, hiTail = null;
+                    Node<K,V> next;
+                    do {
+                        next = e.next;
+                        if ((e.hash & oldCap) == 0) {
+                            if (loTail == null)
+                                loHead = e;
+                            else
+                                loTail.next = e;
+                            loTail = e;
+                        }
+                        else {
+                            if (hiTail == null)
+                                hiHead = e;
+                            else
+                                hiTail.next = e;
+                            hiTail = e;
+                        }
+                    } while ((e = next) != null);
+                    if (loTail != null) {
+                        loTail.next = null;
+                        newTab[j] = loHead;
+                    }
+                    if (hiTail != null) {
+                        hiTail.next = null;
+                        newTab[j + oldCap] = hiHead;
+                    }
+                }
+            }
+        }
+    }
+    return newTab;
+}
+```
+
+### 底层实现
+
+JDK1.8之前使用的是链表+数组的形式,之后使用的是链表+数组+红黑树的形式
+
+### 扰动函数
+
+其实就是一个求hash的函数,定义 null 的hash值为 0.
+
+当 key 不为null时,将hashcode的高16位和低16位相与
+
+```Java
+static final int hash(Object key) {
+    int h;
+    return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
+}
+```
+
+### 为什么长度是2的幂次
+
+在进行put的时候,要进行 index = hash%length 来找到插入的位置,如果长度是2的幂次,直接进行与操作即可,能够极大的提高效率
+
+## HashSet
+
+![HashSet](Collections.assets/HashSet.svg)
+
+### 创建
+
+HashSet 是基于HashMap 实现的
+
+```Java
+public HashSet() {
+    map = new HashMap<>();
+}
+```
+
+### 检查重复
+
+HashSet 在检查重复的时候会先检查hashcode,如果两个元素的key的hashcode相同,再调用 equals 方法进行判断.
+
 ## ConcurrentHashMap
 
 ## CopyOnWriteArrayList
