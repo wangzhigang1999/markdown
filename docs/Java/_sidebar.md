@@ -1,4 +1,4 @@
-- [基础](docs/Java/BaseConcept/Base.md)
+- [基础概念](docs/Java/BaseConcept/Base.md)
 - [集合](docs/Java/collections/Collections.md)
 - [JVM虚拟机](docs/Java/JVM/JVM.md)
 - [多线程](docs/Java/Thread/Thread.md)
