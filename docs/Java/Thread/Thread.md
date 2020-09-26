@@ -280,6 +280,66 @@ CAS的过程可以满足 volatile 的语义
 
 Lock 接口的常用实现类只有 ReentrantLock ,虽然使用不如 synchronized 便捷,但是更加的灵活.
 
+### 公平锁与非公平锁
+
+公平锁的获取顺序遵循绝对时间,非公平锁则不然
+
+公平锁追求绝对的公平,因此会有大量的上下文切换,因此Java中的默认实现是非公平锁.
+
+### 读写锁
+
+![ReentrantReadWriteLock](Thread.assets/ReentrantReadWriteLock.svg)
+
+​	读写锁其实是两把锁,一把读锁和一把写锁. 在大部分情况下,读写锁的性能会比排它锁好.读写锁的读锁是不排他的,而写锁是排他的.
+
+​	在获取写锁的时候,会判断读锁是否存在,如果存在读锁,必须等待所有的读操作完成后再获得写锁,且写锁获得后其余的读写均会被阻塞.
+
+```Java
+int c = getState();
+int w = exclusiveCount(c);
+if (c != 0) {
+    // (Note: if c != 0 and w == 0 then shared count != 0)
+    if (w == 0 || current != getExclusiveOwnerThread())
+        return false;
+```
+
+​	在获取读锁的时候比较简单,如果当前线程拥有锁,重数加一即可. 如果当前线程并未持有锁且没有线程获得写锁,读状态加一. 如果有其他线程获得了写锁,则获取读锁的过程阻塞.
+
+​	锁降级是指拥有写锁的线程尝试获得读锁时,先获得读锁,然后释放写锁的过程.
+
+### LockSupport
+
+​	LockSupport定义了一组静态的工具类来完成线程的阻塞和唤醒工作.
+
+```Java
+// 阻塞当前线程,调用 unpark 或者被中断才能从阻塞中返回
+public static void park() {
+    UNSAFE.park(false, 0L);
+}
+```
+
+```Java
+// 增加了阻塞对象
+public static void park(Object blocker) {
+    Thread t = Thread.currentThread();
+    setBlocker(t, blocker);
+    UNSAFE.park(false, 0L);
+    setBlocker(t, null);
+}
+```
+
+```Java
+// 同时含有阻塞对象和阻塞时间
+public static void parkNanos(Object blocker, long nanos) {
+    if (nanos > 0) {
+        Thread t = Thread.currentThread();
+        setBlocker(t, blocker);
+        UNSAFE.park(false, nanos);
+        setBlocker(t, null);
+    }
+}
+```
+
 ## AQS
 
 抽象队列同步器 是一个**基础框架**,通过继承和重写一些方法可以实现自己的同步工具.
@@ -301,6 +361,10 @@ abstract static class Node {
     Node nextWaiter;		 // 在共享模式下才有意义的属性
 }
 ```
+
+### 等待队列
+
+![img](Thread.assets/20190329234207496.jpg)
 
 ### 获取锁
 
@@ -426,3 +490,191 @@ protected final boolean tryRelease(int releases) {
 }
 ```
 
+### 非独占
+
+AQS 支持独占式获取与非独占式获取锁,但是核心都是相同的.
+
+## Condition接口
+
+所有的对象都有`wait notify` 方法,这些方法可以和 synchronized 进行配合使用.
+
+Condition 接口提供了类似的功能, 与 lock 进行搭配使用, 但是 Condition 比对象提供的通知方法更为强大
+
+使用 Condition 实现一个生产者/消费者模式
+
+```Java
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+class Factory {
+    int goods = 0;
+    Lock lock = new ReentrantLock();
+    Condition condition = lock.newCondition();
+
+    public static void main(String[] args) {
+        Factory factory = new Factory();
+        new Thread(() -> {
+            try {
+                while (true) {
+                    factory.provider();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+
+        new Thread(() -> {
+            try {
+                while (true) {
+                    factory.consumer();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    public void provider() throws InterruptedException {
+        lock.lock();
+        while (goods > 10) {
+            condition.await();
+        }
+        goods += 100;
+        System.out.println(goods);
+        condition.signal();
+        lock.unlock();
+    }
+
+    public void consumer() throws InterruptedException {
+        lock.lock();
+        while (goods <= 0) {
+            condition.await();
+        }
+        goods -= 10;
+        System.out.println(goods);
+        condition.signal();
+        lock.unlock();
+    }
+}
+```
+
+### 等待队列
+
+每个AQS的内部聚合了一个 ConditionObject, 每个 ConditionObject 内部有有两个节点指针,分别是` Node firstWaiter` 和 `Node lastWaiter`.
+
+在新增节点的时候,只需要改变尾节点的指向即可.
+
+由于AQS的内部还有一个同步队列, 当调用 await 方法时, 是将同步队列的首节点加到等待队列的尾节点
+
+当调用 signal 方法时,是将等待队列中等待时间最长的节点加入到同步队列中,然后使用LockSupport将其唤醒,让其参与竞争
+
+## ForkJoinTask
+
+ForkJoin是一个用于并行执行任务的框架,将大任务切割成小任务分而治之.
+
+一个小 Demo
+
+```Java
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.RecursiveTask;
+
+class Task extends RecursiveTask<Integer> {
+    int threshold = 2;
+    int start, end;
+
+    public Task(int start, int end) {
+        this.start = start;
+        this.end = end;
+    }
+
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        ForkJoinPool pool = new ForkJoinPool();
+
+        Task task = new Task(1, 40000);
+
+        ForkJoinTask<Integer> submit = pool.submit(task);
+
+        System.out.println(submit.get());
+    }
+
+    @Override
+    protected Integer compute() {
+        int sum = 0;
+        boolean canCompute = (end - start) <= threshold;
+        if (canCompute) {
+            for (int i = start; i <= end; i++) {
+                sum += i;
+            }
+        } else {
+            int mid = (start + end) / 2;
+            Task a = new Task(start, mid);
+            Task b = new Task(mid + 1, end);
+            a.fork();
+            b.fork();
+
+            sum = a.join() + b.join();
+        }
+        return sum;
+    }
+}
+```
+
+## 原子类
+
+Java 一共提供了 13 个原子类,但是可以分为四种.
+
+## 并发工具类
+
+### CountDownLatch
+
+允许一个线程或者多个线程等待其他线程完成操作. 可以用 Join 方法来实现,但是 CountDownLatch 提供了更多的功能.
+
+CountDownLatch  的计数器只能用一次
+
+### CyclicBarrier
+
+让一组线程达到同步点时再放行的工具,CyclicBarrier的计数器可以重复使用
+
+### Semaphore
+
+控制共享资源的并发数量,实现流量控制
+
+### Exchanger
+
+用于线程间的数据交换,提供了一个同步点,在同步点,两个线程可以交换数据.
+
+## 线程池
+
+### 为什么要使用线程池?
+
+- 线程的频繁创建和销毁也是需要开销的,没有必要不停地创建和销毁
+- 提高响应速度,任务来了即可执行
+- 提高线程的可管理性
+
+### 线程池的执行原理
+
+![file](Thread.assets/20200316152436894.png)
+
+### 创建
+
+```Java
+public ThreadPoolExecutor(int corePoolSize,    					//核心池大小
+                          int maximumPoolSize,					//最大大小
+                          long keepAliveTime,					// 存活时间
+                          TimeUnit unit,						//时间单位
+                          BlockingQueue<Runnable> workQueue,	  //阻塞队列
+                          ThreadFactory threadFactory,			 // 线程工厂
+                          RejectedExecutionHandler handler		  // 拒绝策略
+                         ) {
+}
+```
+
+### 配置
+
+CPU密集型的任务应当尽量减少线程的数目,IO密集型的任务则应当尽量增加线程的数目
+
+最好使用有界阻塞队列,防止OOM

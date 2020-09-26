@@ -1,8 +1,7 @@
-import java.util.concurrent.locks.AbstractQueuedSynchronizer;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.*;
 
-class Solution {
+class Task {
     public static void main(String[] args) {
-        ReentrantLock lock = new ReentrantLock();
     }
+
 }

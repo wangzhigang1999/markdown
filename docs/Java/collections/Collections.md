@@ -852,3 +852,74 @@ public CopyOnWriteArraySet() {
     al = new CopyOnWriteArrayList<E>();
 }
 ```
+
+## BlockingQueue
+
+![BlockingQueue](Collections.assets/BlockingQueue.svg)
+
+阻塞队列的 `阻塞` 意思是:
+
+- 当队满时,插入会等待,直到不满为止
+- 当队空时,获取会等待,直到非空为止
+
+### 实现原理
+
+JDK 使用 通知模式来实现,以 ArrayBlockingQueue为例,内部有一把锁:
+
+```Java
+/** Main lock guarding all access */
+final ReentrantLock lock;
+
+/** Condition for waiting takes */
+private final Condition notEmpty;
+
+/** Condition for waiting puts */
+private final Condition notFull;
+```
+
+在初始化的时候,会绑定两个 Condition 
+
+```Java
+public ArrayBlockingQueue(int capacity, boolean fair) {
+    if (capacity <= 0)
+        throw new IllegalArgumentException();
+    this.items = new Object[capacity];
+    lock = new ReentrantLock(fair);
+    notEmpty = lock.newCondition();
+    notFull =  lock.newCondition();
+}
+```
+
+在put的时候,如果队列满了,则等待
+
+```Java
+public void put(E e) throws InterruptedException {
+    checkNotNull(e);
+    final ReentrantLock lock = this.lock;
+    lock.lockInterruptibly();
+    try {
+        while (count == items.length)
+            notFull.await();
+        enqueue(e);
+    } finally {
+        lock.unlock();
+    }
+}
+```
+
+take 类似,若为空,则等待,
+
+```Java
+public E take() throws InterruptedException {
+    final ReentrantLock lock = this.lock;
+    lock.lockInterruptibly();
+    try {
+        while (count == 0)
+            notEmpty.await();
+        return dequeue();
+    } finally {
+        lock.unlock();
+    }
+}
+```
+
