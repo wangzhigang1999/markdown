@@ -37,4 +37,4 @@
 
 # Let's Start !
 
-<img src="readme.assets/image-20200926110943827.png" alt="image-20200926110943827" style="zoom:25%;" />
+![img](readme.assets/image-20200926110943827.png)
