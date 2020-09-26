@@ -1,8 +1,8 @@
 # 集合
 
-![ArrayList](Collections.assets/ArrayList.svg)
-
 ## ArrayList
+
+![ArrayList](Collections.assets/ArrayList.svg)
 
 ### 创建
 
