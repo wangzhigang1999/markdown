@@ -397,9 +397,137 @@ public HashSet() {
 
 HashSet 在检查重复的时候会先检查hashcode,如果两个元素的key的hashcode相同,再调用 equals 方法进行判断.
 
+## PriorityQueue
+
+### 创建
+
+底层仍然是用对象数组实现的
+
+```Java
+public PriorityQueue() {
+    // DEFAULT_INITIAL_CAPACITY = 11
+    // comparator = null
+    this(DEFAULT_INITIAL_CAPACITY, null);
+}
+```
+
+### 添加
+
+真正有价值的是下边这个方法
+
+```Java
+// k 是插入的位置 x 是插入的值 ex 是对象数组,即底层存储结构
+private static <T> void siftUpComparable(int k, T x, Object[] es) {
+    Comparable<? super T> key = (Comparable<? super T>) x;
+    while (k > 0) {
+        int parent = (k - 1) >>> 1;
+        Object e = es[parent];
+        if (key.compareTo((T) e) >= 0)
+            break;
+        es[k] = e;
+        k = parent;
+    }
+    es[k] = key;
+}
+```
+
+## HashTable
+
+### 创建
+
+很神奇, HashTable 的初始容量是11
+
+```Java
+public Hashtable() {
+    this(11, 0.75f);
+}
+```
+
+### others
+
+HashTable 的方法都有 Synchronized 修饰,但是锁的细粒度不够,因此现在几乎已经不用了.
+
+同时, HashTable 的 value 不能为 null ,但是 key 可以为null.
+
+```Java
+public synchronized V put(K key, V value) {
+    // Make sure the value is not null
+    if (value == null) {
+       throw new NullPointerException();
+    }
+}
+```
+
 ## ConcurrentHashMap
 
 ![ConcurrentHashMap](Collections.assets/ConcurrentHashMap.svg)
+
+### 实现
+
+JDK 1.7 的 ConcurrentHashMap 和 HashMap 的实现大体上是类似的.
+
+#### Node
+
+最基本的Node节点
+
+```Java
+static class Node<K,V> implements Map.Entry<K,V> {
+    final int hash;
+    final K key;
+    volatile V val;
+    volatile Node<K,V> next;
+}
+```
+
+#### ForwardingNode
+
+一个特殊的仅仅在扩容时出现的节点,他的hash值永远是 `-1`
+
+```Java
+static final class ForwardingNode<K,V> extends Node<K,V> {
+    final Node<K,V>[] nextTable;
+    ForwardingNode(Node<K,V>[] tab) {
+        // MOVED = -1
+        super(MOVED, null, null);
+        this.nextTable = tab;
+    }
+    //.....
+}
+```
+
+#### TreeBin
+
+TreeBin 的内部聚合了一个真正的 TreeNode, 但是 TreeBin 实现了简单的并发操作.
+
+ 	重要的一点，红黑树的 读锁状态 和 写锁状态 是互斥的，但是从ConcurrentHashMap角度来说，读写操作实际上可以是不互斥的    
+
+​	红黑树的 读、写锁状态 是互斥的，指的是以红黑树方式进行的读操作和写操作（只有部分的put/remove需要加写锁）是互斥的    
+
+ 	但是当有线程持有红黑树的 写锁 时，读线程不会以红黑树方式进行读取操作，而是使用简单的链表方式进行读取，此时读操作和写操作可以并发执行    
+
+​	当有线程持有红黑树的读锁 时，写线程可能会阻塞，不过因为红黑树的查找很快，写线程阻塞的时间很短
+
+[	更多参考](https://my.oschina.net/qq785482254/blog/4307177)
+
+```Java
+/**
+ * TreeNodes used at the heads of bins. TreeBins do not hold user
+ * keys or values, but instead point to list of TreeNodes and
+ * their root. They also maintain a parasitic read-write lock
+ * forcing writers (who hold bin lock) to wait for readers (who do
+ * not) to complete before tree restructuring operations.
+ */
+static final class TreeBin<K,V> extends Node<K,V> {
+    TreeNode<K,V> root;
+    volatile TreeNode<K,V> first;
+    volatile Thread waiter;
+    volatile int lockState;
+    // values for lockState
+    static final int WRITER = 1; // set while holding write lock
+    static final int WAITER = 2; // set when waiting for write lock
+    static final int READER = 4; // increment value for setting read lock
+}
+```
 
 ### 创建
 
@@ -413,7 +541,314 @@ public ConcurrentHashMap() {
 
 ### 并发级别
 
+并发级别与 bin 的个数相关
 
+```Java
+if (initialCapacity < concurrencyLevel){   // Use at least as many bins
+    initialCapacity = concurrencyLevel;
+}
+```
+
+### 重要的属性
+
+#### sizeCTL
+
+表初始化和扩容控制,当为负值时表示当前的表正在进行初始化或者扩容.
+
+​	-1 表示正在初始化
+
+​	-(1+x) 表示有 x 个活动线程正在进行扩容
+
+当表为null , 值为 0
+
+当值为正数时, 表示初始化或者下一次扩容的大小
+
+```Java
+/**
+ * Table initialization and resizing control.  When negative, the
+ * table is being initialized or resized: -1 for initialization,
+ * else -(1 + the number of active resizing threads).  Otherwise,
+ * when table is null, holds the initial table size to use upon
+ * creation, or 0 for default. After initialization, holds the
+ * next element count value upon which to resize the table.
+ */
+private transient volatile int sizeCtl;
+```
+
+### 初始化
+
+```Java
+private final Node<K,V>[] initTable() {
+    Node<K,V>[] tab; int sc;
+    while ((tab = table) == null || tab.length == 0) {
+        // 小于 0 说明有其他线程正在进行扩容或者初始化操作,让出时间片
+        if ((sc = sizeCtl) < 0)
+            Thread.yield(); // lost initialization race; just spin
+        else if (U.compareAndSetInt(this, SIZECTL, sc, -1)) {
+            try {
+                // double check 的思想,防止其他线程扩容后当前线程仍然进行扩容
+                if ((tab = table) == null || tab.length == 0) {
+                    int n = (sc > 0) ? sc : DEFAULT_CAPACITY;
+                    @SuppressWarnings("unchecked")
+                    Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n];
+                    table = tab = nt;
+                    sc = n - (n >>> 2);
+                }
+            } finally {
+                sizeCtl = sc;
+            }
+            break;
+        }
+    }
+    return tab;
+}
+```
+
+### 增加
+
+整体上类似于HashMap, 但是由于存在并发控制,因此使用了 CAS + synchronized 来保证并发安全
+
+```Java
+/** Implementation for put and putIfAbsent */
+
+// onlyIfAbsent 的用处在于判断键存在时是否进行值得的替换
+final V putVal(K key, V value, boolean onlyIfAbsent) {
+    // 如果键或者值为null,则抛出空指针异常,这一点与 HashMap 不同
+    if (key == null || value == null) throw new NullPointerException();
+	// spread 仍是扰动函数,但是与HashMap的扰动函数有一点不同	
+    int hash = spread(key.hashCode());
+    int binCount = 0;
+    for (Node<K,V>[] tab = table;;) {
+        Node<K,V> f; int n, i, fh; K fk; V fv;
+        // 表未初始化,则转去初始化
+        if (tab == null || (n = tab.length) == 0)
+            tab = initTable();
+        // 如果待插入的位置上没有值,使用 CAS 的方式将值放进去
+        else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) {
+            if (casTabAt(tab, i, null, new Node<K,V>(hash, key, value)))
+                break; // no lock when adding to empty bin
+        }
+        // 如果发现有其他的线程正在进行扩容操作,转去帮助扩容
+        // 如何发现的? 此处的 MOVED = -1 ,而只有 ForwardingNode 的hash 值是-1
+        // 因此当前的节点是一个ForwardingNode,只有在扩容的时候才会出现 ForwardingNode
+        else if ((fh = f.hash) == MOVED)
+            tab = helpTransfer(tab, f);
+        // 如果发现了相同的键值对,返回即可
+        else if (onlyIfAbsent // check first node without acquiring lock
+                 && fh == hash
+                 && ((fk = f.key) == key || (fk != null && key.equals(fk)))
+                 && (fv = f.val) != null)
+            return fv;
+        else {
+            V oldVal = null;
+            // 锁住当前的节点,当前的节点是一个 Node
+            synchronized (f) {
+                if (tabAt(tab, i) == f) {
+                    if (fh >= 0) {
+                        binCount = 1;
+                        for (Node<K,V> e = f;; ++binCount) {
+                            K ek;
+                            // 元素已经存在,更新元素的值
+                            if (e.hash == hash &&
+                                ((ek = e.key) == key ||
+                                 (ek != null && key.equals(ek)))) {
+                                oldVal = e.val;
+                                if (!onlyIfAbsent)
+                                    e.val = value;
+                                break;
+                            }
+                            // 否则就将元素插入到链表的尾部
+                            Node<K,V> pred = e;
+                            if ((e = e.next) == null) {
+                                pred.next = new Node<K,V>(hash, key, value);
+                                break;
+                            }
+                        }
+                    }
+                    // 如果当前节点不是链表而是红黑树,则调用红黑树的插入方法
+                    else if (f instanceof TreeBin) {
+                        Node<K,V> p;
+                        binCount = 2;
+                        if ((p = ((TreeBin<K,V>)f).putTreeVal(hash, key,
+                                                       value)) != null) {
+                            oldVal = p.val;
+                            if (!onlyIfAbsent)
+                                p.val = value;
+                        }
+                    }
+                    else if (f instanceof ReservationNode)
+                        throw new IllegalStateException("Recursive update");
+                }
+            }
+            if (binCount != 0) {
+                // 如果 bin 的树目>=7 ,则转去树化,但是并不是必须进行树化.
+                if (binCount >= TREEIFY_THRESHOLD)
+                    treeifyBin(tab, i);
+                if (oldVal != null)
+                    return oldVal;
+                break;
+            }
+        }
+    }
+    addCount(1L, binCount);
+    return null;
+}
+```
+
+### 查找
+
+查找过程是不加锁的
+
+```Java
+public V get(Object key) {
+    Node<K,V>[] tab; Node<K,V> e, p; int n, eh; K ek;
+	// 计算一下hash
+    int h = spread(key.hashCode());
+    // 如果第一个节点就找到了,返回即可
+    if ((tab = table) != null && (n = tab.length) > 0 &&
+        (e = tabAt(tab, (n - 1) & h)) != null) {
+        if ((eh = e.hash) == h) {
+            if ((ek = e.key) == key || (ek != null && key.equals(ek)))
+                return e.val;
+        }
+        // 如果hash值小于0,那么只有两种情况 : ForwardingNode 或者 TreeBin
+        // 调用相关的方法查询
+        else if (eh < 0)
+            return (p = e.find(h, key)) != null ? p.val : null;
+		// 在链表上进行查找
+        while ((e = e.next) != null) {
+            if (e.hash == h &&
+                ((ek = e.key) == key || (ek != null && key.equals(ek))))
+                return e.val;
+        }
+    }
+    return null;
+}
+```
+
+> ForwardingNode 的查找
+
+```Java
+Node<K,V> find(int h, Object k) {
+    // loop to avoid arbitrarily deep recursion on forwarding nodes
+    outer: for (Node<K,V>[] tab = nextTable;;) {
+        Node<K,V> e; int n;
+        if (k == null || tab == null || (n = tab.length) == 0 ||
+            (e = tabAt(tab, (n - 1) & h)) == null)
+            return null;
+        for (;;) {
+            int eh; K ek;
+            // 第一个节点就是要找的节点
+            if ((eh = e.hash) == h &&
+                ((ek = e.key) == k || (ek != null && k.equals(ek))))
+                return e;
+		   // 继续 "递归" ,但是采用循环的方式可以避免递归层数太深导致栈溢出
+            if (eh < 0) {
+                if (e instanceof ForwardingNode) {
+                    tab = ((ForwardingNode<K,V>)e).nextTable;
+                    continue outer;
+                }
+                else
+                    return e.find(h, k);
+            }
+            //是一个普通的节点,则正常查找即可
+            if ((e = e.next) == null)
+                return null;
+        }
+    }
+}
+```
+
+> TreeBin的查找
+
+参考前边对 TreeBin的介绍, 红黑树上是不能同时进行读写操作的.
+
+事实上 TreeBin 只是一个代理的角色,用于实现并发安全,真正的查找是由内部聚合的 `TreeNode` 实现的.
+
+```Java
+/**
+ * Returns matching node or null if none. Tries to search
+ * using tree comparisons from root, but continues linear
+ * search when lock not available.
+ */
+final Node<K,V> find(int h, Object k) {
+    if (k != null) {
+        for (Node<K,V> e = first; e != null; ) {
+            int s; K ek;
+            if (((s = lockState) & (WAITER|WRITER)) != 0) {
+                if (e.hash == h &&
+                    ((ek = e.key) == k || (ek != null && k.equals(ek))))
+                    return e;
+                e = e.next;
+            }
+            else if (U.compareAndSetInt(this, LOCKSTATE, s, s + READER)) {
+                TreeNode<K,V> r, p;
+                try {
+                    p = ((r = root) == null ? null :
+                         r.findTreeNode(h, k, null));
+                } finally {
+                    Thread w;
+                    if (U.getAndAddInt(this, LOCKSTATE, -READER) ==
+                        (READER|WAITER) && (w = waiter) != null)
+                        LockSupport.unpark(w);
+                }
+                return p;
+            }
+        }
+    }
+    return null;
+}
+```
 
 ## CopyOnWriteArrayList
 
+### 创建
+
+开始创建会初始化一个空的数组
+
+```Java
+public CopyOnWriteArrayList() {
+    setArray(new Object[0]);
+}
+```
+
+### 增加
+
+在增加的时候,不会直接在原数组上进行修改,而是将原数组扩容,在进行赋值操作. 最后调用 setArray 完成增加.
+
+即 `CopyOnWrite`
+
+```Java
+public boolean add(E e) {
+    synchronized (lock) {
+        Object[] es = getArray();
+        int len = es.length;
+        es = Arrays.copyOf(es, len + 1);
+        es[len] = e;
+        setArray(es);
+        return true;
+    }
+}
+```
+
+### get
+
+没有并发限制
+
+```Java
+public E get(int index) {
+    return elementAt(getArray(), index);
+}
+```
+
+## CopyOnWriteArraySet
+
+### 创建
+
+内部其实就是一个 CopyOnWriteArrayList ~
+
+```Java
+public CopyOnWriteArraySet() {
+    al = new CopyOnWriteArrayList<E>();
+}
+```
