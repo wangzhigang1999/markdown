@@ -286,7 +286,7 @@ Lock 接口的常用实现类只有 ReentrantLock ,虽然使用不如 synchroniz
 
 ![AbstractQueuedSynchronizer](Thread.assets/AbstractQueuedSynchronizer-1601103071048.svg)
 
-#### 同步队列
+### 同步队列
 
 每个同步器中都存在一个FIFO双向队列来管理同步状态. 当当前线程获取锁失败时,会将当前线程以及一些信息包装成一个节点,然后将其加入同步队列,同时阻塞当前线程. 当锁被释放时,唤醒队列的首节点,让其尝试获取锁.
 
@@ -302,7 +302,7 @@ abstract static class Node {
 }
 ```
 
-#### 获取锁
+### 获取锁
 
 以 ReentrantLock 为例: 首先会尝试CAS直接获取锁,如果成功则结束,否则转去 acquire 方法,
 
@@ -395,7 +395,7 @@ final boolean acquireQueued(final Node node, int arg) {
 }
 ```
 
-#### 锁的释放
+### 释放锁
 
 ```Java
 public final boolean release(int arg) {
