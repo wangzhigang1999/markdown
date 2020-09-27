@@ -678,3 +678,6 @@ public ThreadPoolExecutor(int corePoolSize,    					//核心池大小
 CPU密集型的任务应当尽量减少线程的数目,IO密集型的任务则应当尽量增加线程的数目
 
 最好使用有界阻塞队列,防止OOM
+
+## ThreadLocal
+
