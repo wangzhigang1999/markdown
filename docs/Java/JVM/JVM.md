@@ -472,4 +472,5 @@ attribute_info  attributes[attributes_count]; // ... 属性表,描述特定场�
 
 ![img](JVM.assets/%E7%B1%BB%E5%8A%A0%E8%BD%BD-%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%BC%8F.jpeg)
 
-// todo
+## 字节码执行引擎
+
