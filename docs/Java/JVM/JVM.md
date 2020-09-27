@@ -379,3 +379,97 @@ Region 大小可变
 ​		这并不是很要紧的阶段,即使没有这个阶段,每次访问一个被移动的对象时也会更新映射.
 
 ## Class文件
+
+class 文件中只有两种数据: 无符号整型和表
+
+```C
+ClassFile {
+u4              magic;//魔数 cafe baby
+u2              minor_version; // 次版本号
+u2              major_version; // 主版本号
+u2              constant_pool_count; // 常量池计数
+cp_info         constant_pool[constant_pool_count-1]; // 常量池表
+u2              access_flags; // 访问标志 类或者接口级别的层次的访问信息
+u2              this_class;	//当前类
+u2              super_class; // 父类
+u2              interfaces_count; // 接口计数
+u2              interfaces[interfaces_count]; // 接口表
+u2              fields_count; // ...
+field_info      fields[fields_count]; // ...
+u2              methods_count; // ...
+method_info     methods[methods_count]; // ...
+u2              attributes_count; // ... 
+attribute_info  attributes[attributes_count]; // ... 属性表,描述特定场景下的一些属性
+}
+```
+
+#### 常量池表
+
+截止 jdk15 常量共有 17种
+
+![image-20200927174752962](JVM.assets/image-20200927174752962.png)
+
+#### 访问标识
+
+标识当前 class 是类还是接口, 以及访问标识 public 等等
+
+## 类加载机制
+
+虚拟机把描述的类从class文件加载到内存,进行解析和初始化形成Java虚拟机可以使用的类型的过程称为初始化.
+
+类的生命周期:
+
+![img](JVM.assets/class%20lifeCycle.png)
+
+在这七个周期中, 加载 验证 准备 初始化 卸载 的顺序是固定的,解析则可以在初始化之后再进行.
+
+有六种必须立即进行初始化的情况:
+
+1. 遇到**New getstatic putstatic invokestatic** 字节码的时候。
+2. 如果一个接口定义了**default**方法且它的实现类被初始化时,接口会被初始化.
+3. JDK7之后 `java.lang.invoke.MethodHandle`实例的解析结果为**REF_getstatic  REF_putstatic REF_invokestatic REF_invokeSpecial**四种类型的方法句柄,且方法句柄对应的类没有初始化
+
+4. 通过java.lang.reflect包中的方法对类进行**反射调用**的时候。
+
+5. 当初始化一个类时，发现其**父类**还没有进行初始化，则需要先触发其父类初始化。
+
+6. 当***虚拟机启动**时，用户需要指定一个要执行的包含 main 方法的主类，虚拟机会初始化这个主类。
+
+~第三条看起来让人一脸懵逼~, 但是为了完整性我还是贴上来了
+
+### 类加载器
+
+类加载器是获取二进制字节流的一段代码,每一个类加载器都有一个唯一的限定名
+
+### 加载
+
+加载阶段虚拟机会通过类的全限定名获得二进制字节流,然后将其转换成**方法区的运行时数据结构**,最后生成 Java.lang.class对象作为访问入口.
+
+### 验证
+
+确保字节流中的信息严格符合Java字节码规范的要求,验证主要包含四个阶段:
+
+1. 文件格式验证. 主要是为了验证文件格式的正确性
+2. 元数据验证. 主要是验证字节码信息的语义,比如是否重写了抽象方法
+3. 字节码验证. 主要是通过数据流分析和控制流分析,保证运行逻辑的正确性
+4. 符号引用验证. 检查当前类之外的各种信息是否匹配,相当于检查外部依赖.
+
+### 准备
+
+准备阶段会对类中的 **静态变量** 分配内存并设置 **初始值**的过程,这个初始值指的是 **0**值
+
+`private static int a = 123;` 此时的a是0而不是123. 但如果一个静态变量被**final**修饰,那么就会直接初始化.
+
+### 解析
+
+解析是将常量池中的符号引用替换为直接引用的过程
+
+### 初始化
+
+虚拟机从此开始执行Java方法,但不是直接调用. 而是调用 `clinit`,一个由编译器生成的方法,其中包含了所有的赋值语句和static块. 顺序是代码在源代码中的先后顺序
+
+### 双亲委派机制
+
+![img](JVM.assets/%E7%B1%BB%E5%8A%A0%E8%BD%BD-%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%BC%8F.jpeg)
+
+// todo
