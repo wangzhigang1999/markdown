@@ -35,5 +35,3 @@ s
 > [我的简历](docs/resume/resume.md)
 
 # Let's Start !
-
-![img](readme.assets/image-20200926110943827.png)
