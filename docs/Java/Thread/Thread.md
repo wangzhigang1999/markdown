@@ -246,6 +246,8 @@ volatile 读 后 SL
 
 重量级锁会存在用户态和内核态的切换,开销比较大,但是不消耗 CPU
 
+### 锁粗化
+
 ## CAS
 
 比较并交换,在UnSafe类中有大量的相关方法,底层是通过处理器的 `CMPX-CHG`实现的
@@ -680,4 +682,8 @@ CPU密集型的任务应当尽量减少线程的数目,IO密集型的任务则�
 最好使用有界阻塞队列,防止OOM
 
 ## ThreadLocal
+
+### 内存泄漏
+
+ThreadLocalMap的key是ThreadLocal的弱引用 ,当没有一个强引用引用ThreadLocal时,key会被回收掉,而value就永远访问不到了.
 

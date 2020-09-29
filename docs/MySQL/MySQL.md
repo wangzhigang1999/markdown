@@ -152,7 +152,7 @@ write 、read 、insert buffer 和log IO thread 。
 
 缓冲池中缓存的数据页类型有：索引页、数据页、undo 页、插入缓冲( insert buff er)、自适应哈希索引(adaptive hash index) 、InnoDB 存储的锁信息(lockinfo) 、数据字典信息(data dictionary) 等。不能简单地认为，缓冲池只是缓存索引页和数据页，它们只是占缓冲池很大的一部分而已。
 
-缓冲池的写策略需要一个==checkpoint==
+缓冲池的写策略需要一个 ==checkpoint== 
 
 缓冲池中页的大小默认为`16KB`
 

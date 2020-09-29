@@ -447,7 +447,7 @@ public Hashtable() {
 
 HashTable 的方法都有 Synchronized 修饰,但是锁的细粒度不够,因此现在几乎已经不用了.
 
-同时, HashTable 的 value 不能为 null ,但是 key 可以为null.
+同时, HashTable 的 key和value 不能为 null ,但是两者的异常信息是不一样的. 当 value 为null的时候会抛出简单的空指针异常, 当 key 为null 的时候会由虚拟机抛出异常 ` Cannot invoke "Object.hashCode()" because "key" is null`
 
 ```Java
 public synchronized V put(K key, V value) {
@@ -861,6 +861,7 @@ public CopyOnWriteArraySet() {
 
 - 当队满时,插入会等待,直到不满为止
 - 当队空时,获取会等待,直到非空为止
+- BlockingQueue是线程安全的,因为在每次增加或者删除的时候都有使用锁
 
 ### 实现原理
 
