@@ -1,5 +1,6 @@
 - [Java](docs/Java/)
 - [MySQL](docs/MySQL/)
-- [leetcode](docs/leetcode/)
-- [projects](docs/project)
-- [日常碎碎念](docs/sehSehLiam/sehSehLiam.md)
+- [Leetcode](docs/leetcode/)
+- [Projects](docs/project/)
+- [SehSehLiam](docs/sehSehLiam/sehSehLiam.md)
+
