@@ -34,3 +34,4 @@
 > [我的简历](docs/resume/resume.md)
 
 # Let's Start !
+[Github从这里跳转~](https://www.bupt.site/articles)
