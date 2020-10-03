@@ -4,6 +4,16 @@
 
 ​	Java 有8大基本类型: `char byte short int long float double boolean`,每一种基本类型都有对应的包装类型. Java会对基本类型和其对应的包装类型进行``自动拆箱和装箱``, 注意,这个过程可能会发生空指针异常.
 
+boolean 很特殊, 他的大小是不确定的, 在 单独使用时是 4字节, 当按照一个数组使用时,大小是 1 字节
+
+Although the Java Virtual Machine defines a `boolean` type, it only provides very limited support for it. There are no Java Virtual Machine instructions solely dedicated to operations on `boolean` values. Instead, expressions in the Java programming language that operate on `boolean` values are compiled to use values of the Java Virtual Machine `int` data type.
+
+The Java Virtual Machine does directly support `boolean` arrays. Its *newarray* instruction ([§*newarray*](https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.newarray)) enables creation of `boolean` arrays. Arrays of type `boolean` are accessed and modified using the `byte` array instructions *baload* and *bastore* .
+
+In Oracle’s Java Virtual Machine implementation, `boolean` arrays in the Java programming language are encoded as Java Virtual Machine `byte` arrays, using 8 bits per `boolean` element.
+
+The Java Virtual Machine encodes `boolean` array components using `1` to represent `true` and `0` to represent `false`. Where Java programming language `boolean` values are mapped by compilers to values of Java Virtual Machine type `int`, the compilers must use the same encoding.
+
 ## String
 
 ​	Java 的String是用 `byte` 数组实现的,之前有版本使用 `char` 数组实现. 为什么要改变这一实现? 因为 char 占用两个字节, 而 byte 只占用一个字节. 

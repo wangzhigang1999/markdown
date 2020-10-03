@@ -278,3 +278,94 @@ class Solution {
     }
 }
 ```
+
+## 链表的第一个公共节点
+
+要求不能改变原来的链表
+
+### HashSet
+
+很简单直接的思路, 将一条链表上的所有节点全部加入集合中,再从第二条链表开始进行遍历,若发现节点在集合中,说明是交点.
+
+```java
+public class Solution {
+    public ListNode getIntersectionNode(ListNode headA, ListNode headB) {
+    HashSet<ListNode> set = new HashSet<>();
+    while(headA!=null){
+        set.add(headA);
+        headA = headA.next;
+    }
+
+    while(headB!=null){
+        if(set.contains(headB)){
+            return headB;
+        }
+        headB = headB .next;
+    }
+    return null;
+        
+    }
+}
+```
+
+### 双指针
+
+类比两个人在操场上跑,即使速度不同最终一定会相遇
+
+> 第一种思路
+
+```java
+public class Solution {
+    public ListNode getIntersectionNode(ListNode headA, ListNode headB) {
+
+        ListNode a =headA;
+        ListNode b =headB;
+		// 每当一条链表遍历完成之后就从另一条链表的起始处进行遍历,这样最多只需要将两条链表都遍历一次
+        //  就能找到交点
+        while(headB!=headA){
+            if(headB==null){
+                headB=a;
+            }else{
+              headB =headB.next;
+            }
+            if(headA==null){
+                headA=b;
+            }else{
+              headA=headA.next;
+            }
+        }
+
+        return headA;
+    }
+}
+```
+
+> 第二种思路
+
+```java
+public class Solution {
+    public ListNode getIntersectionNode(ListNode headA, ListNode headB) {
+
+        ListNode a =headA;
+        ListNode b =headB;
+
+        while(headB!=headA){
+            if(headB==null){
+                // 此处,当链表遍历完成之后,不是去另一条链表的开始处,而是回到自己的开头位置
+                // 这样,需要遍历两条链表的 最小公倍数 次才能到达终点
+                headB=b;
+            }else{
+              headB =headB.next;
+            }
+            if(headA==null){
+                headA=a;
+            }else{
+              headA=headA.next;
+            }
+        }
+
+        return headA;
+    }
+}
+```
+

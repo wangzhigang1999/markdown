@@ -962,3 +962,29 @@ class Solution {
     }
 }
 ```
+
+## 数组中的重复数字
+
+```text
+在一个长度为 n 的数组 nums 里的所有数字都在 0～n-1 的范围内。数组中某些数字是重复的，但不知道有几个数字重复了，也不知道每个数字重复了几次。请找出数组中任意一个重复的数字。
+```
+
+这个题当然可以用 HashSet 来做,但是题目给的很有意思, 所有数字都在 0 - n-1 之间,因此有一种神奇的思路: 将每个元素都放到他的位置上, 那么必然有一些元素的位置会放两个相同的数
+
+```java
+public int findRepeatNumber(int[] nums) {
+    for (int i = 0; i < nums.length; i++) {
+        if (i != nums[i]) {
+            if (nums[nums[i]] == nums[i]) {
+                return nums[i];
+            }
+            // 这里有一个极容易出错的点, nums[i] 的值会被改变,因此需要一个中间变量				来暂存一下
+            int a = nums[i];
+            nums[i] = nums[a];
+            nums[a] = a;
+        }
+    }
+    return 0;
+}
+```
+

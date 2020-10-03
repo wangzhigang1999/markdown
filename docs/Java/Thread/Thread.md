@@ -683,6 +683,59 @@ CPU密集型的任务应当尽量减少线程的数目,IO密集型的任务则�
 
 ## ThreadLocal
 
+![img](Thread.assets/172259164557.jpg)
+
+ThreadLocal 是解决线程共享变量的一个思路.
+
+考虑如下代码, 多线程进行格式化的时候会出现奇怪的异常, 加锁之后正常. DateFormat 仅仅对外提供服务, 并不涉及到自身的修改,只是一个工具类. 上锁的话开销太大.
+
+```Java
+public static void main(String[] args) throws ParseException {
+   DateFormat dateFormat = (new SimpleDateFormat("YYYY-MM-dd"));
+    for (int i = 0; i < 10000; i++) {
+        new Thread(() -> {
+            try {
+                var a = dateFormat.parse("2002-3-15");
+                System.out.println(a.toString());
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+}
+```
+
+``````tex
+Exception in thread "Thread-11" Exception in thread "Thread-7" Exception in thread "Thread-0" Exception in thread "Thread-5" Exception in thread "Thread-4" java.lang.NumberFormatException: For input string: ""
+	at java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:68)
+	at java.base/java.lang.Long.parseLong(Long.java:717)
+	at java.base/java.lang.Long.parseLong(Long.java:832)
+	at java.base/java.text.DigitList.getLong(DigitList.java:195)
+	at java.base/java.text.DecimalFormat.parse(DecimalFormat.java:2197)
+	at java.base/java.text.SimpleDateFormat.subParse(SimpleDateFormat.java:1934)
+	at java.base/java.text.SimpleDateFormat.parse(SimpleDateFormat.java:1542)
+	at java.base/java.text.DateFormat.parse(DateFormat.java:394)
+	at Redis.lambda$main$0(Redis.java:18)
+	at java.base/java.lang.Thread.run(Thread.java:832)
+``````
+
+### ThreadLocalMap
+
+是一个 map ,但不是 hashmap. Entry 数组很特殊:
+
+entry 的 key 是一个 threadlocal , 同时也是一个弱引用
+
+```Java
+static class Entry extends WeakReference<ThreadLocal<?>> {
+    /** The value associated with this ThreadLocal. */
+    Object value;
+    Entry(ThreadLocal<?> k, Object v) {
+        super(k);
+        value = v;
+    }
+}
+```
+
 ### 内存泄漏
 
 ThreadLocalMap的key是ThreadLocal的弱引用 ,当没有一个强引用引用ThreadLocal时,key会被回收掉,而value就永远访问不到了.
