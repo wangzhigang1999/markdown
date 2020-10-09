@@ -218,15 +218,11 @@ public boolean hasCycle(ListNode head) {
 
 ## 链表的第k个节点
 
+有两种思路,第一种思路就是先统计出链表的长度,然后再进行遍历,第二种思路就是设置快慢指针,第一个指针先走 k 步,然后第二个指针再走. 当第一个指针到尾时第二个指针就是倒数第 k 个数
+
+> 第一种思路
+
 ```java
-/**
- * Definition for singly-linked list.
- * public class ListNode {
- *     int val;
- *     ListNode next;
- *     ListNode(int x) { val = x; }
- * }
- */
 class Solution {
     public ListNode getKthFromEnd(ListNode head, int k) {
         ListNode node = head;
@@ -246,6 +242,35 @@ class Solution {
     }
 }
 ```
+
+> 第二种思路
+
+```java
+class Solution {
+    public ListNode getKthFromEnd(ListNode head, int k) {
+        int cnt =k;
+        ListNode quick = head;
+        while(cnt>0 && quick!=null){
+            cnt--;
+            quick=quick.next;
+        }
+
+        if(cnt!=0){
+            return null;
+        }
+
+        ListNode slow =head;
+
+        while(quick!=null){
+            quick=quick.next;
+            slow=slow.next;
+        }
+        return slow;
+    }
+}
+```
+
+
 
 ## 删除链表的节点
 

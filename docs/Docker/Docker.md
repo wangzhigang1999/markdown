@@ -4,7 +4,9 @@
 
 ### 安装
 
-之前Windows10 家庭版似乎不支持直接安装docker,但是现在可以了,exe无脑安装即可
+之前Windows10 家庭版似乎不支持直接安装docker,但是现在可以了,exe无脑安装即可。
+
+在Linux的安装请参考 [docker官方文档](https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository) ，也是很简单的，按照步骤进行即可。
 
 ### 运行镜像
 
@@ -130,10 +132,16 @@ docker run -dp 8080:8080 -v C:\Users\wangz\Documents\vscode\volume\tomcat:/usr/l
 
 `docker built -t name:version .`
 
+## Docker Compose
+
+帮助我们批量的管理容器
+
 ## 遇到的问题
 
 > 安装 Tomcat 后访问8080目录显示 404
 
-我们需要将其中的webapps目录删掉,然后将 webapps.dist 重命名为 webapps
+我们需要将其中的webapps目录删掉,然后将 webapps.dist 重命名为 webapps.
+
+这个问题在 docker  hub 的tomcat界面是有提到的, 只是第一次没有仔细看.
 
 ![image-20201003103836093](Docker.assets/image-20201003103836093.png)

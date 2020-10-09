@@ -52,14 +52,95 @@ public int[] productExceptSelf(int[] nums) {
 
 ## 左旋字符串
 
+很简单的题目,但是如果加上时间或者空间的要求就很有意思了
 
+> 使用api
 
 ```java
 public String reverseLeftWords(String s, int n) {
-
-    return s.substring(n ) + s.substring(0, n);
+    return s.substring(n) + s.substring(0, n);
 }
 ```
+
+> 要求使用常数级的空间
+
+```java
+// 这是一种很朴素的思想,将整个数组向左移动 n 位,但是这样的时间复杂度比较高 O(n*length),在最坏情况下,会达到
+//O(length^2), 那么有没有更好算法呢,是有的
+public String reverseLeftWords(String s, int n) {
+    char[] array = s.toCharArray();
+    if (array.length < n) {
+        return "";
+    }
+    for (int i = 0; i < n; i++) {
+        move(array);
+    }
+    return new String(array);
+}
+
+private void move(char[] array) {
+    var tmp = array[0];
+    System.arraycopy(array, 1, array, 0, array.length - 1);
+    array[array.length - 1] = tmp;
+}
+```
+
+![参考](others.assets/1599203229-TUcYHl-%E5%89%91%E6%8C%87Offer58-II.%E5%B7%A6%E6%97%8B%E8%BD%AC%E5%AD%97%E7%AC%A6%E4%B8%B2.png)
+
+> 对整个数组进行三次翻转
+
+```java
+// 三次翻转的时间复杂度比循环左移高了 7 倍,但是由于 Java 字符串的不可变性,空间复杂度本质上还是O(n)的, 只是从算法上是O(1)的
+class Solution {
+    public String reverseLeftWords(String s, int n) {
+        char[] array = s.toCharArray();
+
+        if (array.length < n) {
+            return "";
+        }
+
+        reverse(array,0,n-1);
+        reverse(array,n,array.length-1);
+        reverse(array,0,array.length-1);
+        
+        return new String(array);
+    }
+
+    public void reverse(char [] array, int left,int right){
+        while(left<right){
+            char tmp =array[left];
+            array[left]=array[right];
+            array[right]=tmp;
+
+            left++;
+            right--;
+        }
+    }
+}
+```
+
+> 折中方案
+
+```java
+class Solution {
+
+    public String reverseLeftWords(String s, int n) {
+        StringBuilder str = new StringBuilder();
+
+        for (int i =n;i<s.length();i++){
+            str.append(s.charAt(i));
+        }
+
+        for(int i =0;i<n;i++){
+            str.append(s.charAt(i));
+        }
+        
+        return str.toString();
+    }
+}
+```
+
+
 
 ## 顺子
 
