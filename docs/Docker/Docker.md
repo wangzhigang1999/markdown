@@ -132,9 +132,11 @@ docker run -dp 8080:8080 -v C:\Users\wangz\Documents\vscode\volume\tomcat:/usr/l
 
 `docker built -t name:version .`
 
-## Docker Compose
+> Supervisor是一个客户端/服务器系统，允许其用户监视和控制类似UNIX的操作系统上的多个进程。
 
-帮助我们批量的管理容器
+​	在真正的生产应用中,一般使用类似supervisor这一类的进程管理工具来管理我们自己的服务. 即在docker启动时,首先启动的是supervisor, 然后由supervisor来启动我们自己的任务.
+
+
 
 ## 遇到的问题
 
